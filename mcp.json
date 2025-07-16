@@ -1,0 +1,231 @@
+{
+  "name": "rclean",
+  "description": "High-performance disk cleanup and file analysis MCP server with duplicate detection, storage outlier analysis, and similarity clustering",
+  "version": "0.1.2",
+  "author": "PAIML Team",
+  "license": "MIT",
+  "homepage": "https://github.com/paiml/rclean",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paiml/rclean.git"
+  },
+  "mcp": {
+    "protocol_version": "2024-11-05",
+    "transport": "stdio",
+    "command": "rclean",
+    "args": [],
+    "env": {"MCP_VERSION": "2024-11-05"},
+    "tools": [
+      {
+        "name": "dedupe",
+        "description": "Find and analyze duplicate files using MD5 content hashing with parallel processing",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to scan (default: current directory)"
+            },
+            "pattern": {
+              "type": "string",
+              "description": "File pattern to match (optional)"
+            },
+            "pattern_type": {
+              "type": "string",
+              "enum": ["literal", "glob", "regex"],
+              "default": "literal",
+              "description": "Type of pattern matching"
+            },
+            "include_hidden": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include hidden files in scan"
+            },
+            "max_depth": {
+              "type": "number",
+              "description": "Maximum directory depth to scan (optional)"
+            },
+            "csv_output": {
+              "type": "string",
+              "description": "Path to save CSV report (optional)"
+            }
+          },
+          "required": ["path"]
+        }
+      },
+      {
+        "name": "search",
+        "description": "Search for files matching specific patterns across the filesystem",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to search"
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Pattern to match against filenames"
+            },
+            "pattern_type": {
+              "type": "string",
+              "enum": ["literal", "glob", "regex"],
+              "default": "literal",
+              "description": "Type of pattern matching"
+            },
+            "include_hidden": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include hidden files in search"
+            }
+          },
+          "required": ["path", "pattern"]
+        }
+      },
+      {
+        "name": "count",
+        "description": "Count files matching patterns for quick filesystem analysis",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path to analyze"
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Pattern to match (optional)"
+            },
+            "pattern_type": {
+              "type": "string",
+              "enum": ["literal", "glob", "regex"],
+              "default": "literal",
+              "description": "Type of pattern matching"
+            }
+          },
+          "required": ["path"]
+        }
+      },
+      {
+        "name": "outliers",
+        "description": "Detect large files, hidden space consumers, and unusual storage patterns",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory to analyze"
+            },
+            "min_size_mb": {
+              "type": "number",
+              "default": 10,
+              "description": "Minimum file size in MB"
+            },
+            "std_dev_threshold": {
+              "type": "number",
+              "default": 2.0,
+              "description": "Standard deviation threshold for outlier detection"
+            },
+            "top_n": {
+              "type": "number",
+              "default": 20,
+              "description": "Number of top outliers to return"
+            }
+          },
+          "required": ["path"]
+        }
+      },
+      {
+        "name": "analyze_clusters",
+        "description": "Perform DBSCAN clustering analysis to find groups of similar files",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory to analyze"
+            },
+            "min_similarity": {
+              "type": "number",
+              "default": 70,
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Minimum similarity threshold (0-100)"
+            },
+            "min_cluster_size": {
+              "type": "number",
+              "default": 2,
+              "minimum": 2,
+              "description": "Minimum files per cluster"
+            }
+          },
+          "required": ["path"]
+        }
+      }
+    ],
+    "capabilities": [
+      "file_analysis",
+      "duplicate_detection", 
+      "storage_optimization",
+      "pattern_matching",
+      "clustering_analysis",
+      "outlier_detection"
+    ],
+    "categories": [
+      "productivity",
+      "system_administration", 
+      "file_management",
+      "data_analysis"
+    ]
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "file-analysis",
+    "duplicate-detection",
+    "disk-cleanup",
+    "storage-optimization",
+    "rust",
+    "high-performance",
+    "parallel-processing"
+  ],
+  "installation": {
+    "crates.io": {
+      "package": "rclean",
+      "install_command": "cargo install rclean"
+    },
+    "github": {
+      "repository": "https://github.com/paiml/rclean",
+      "install_command": "cargo install --git https://github.com/paiml/rclean.git"
+    }
+  },
+  "usage": {
+    "command": "MCP_VERSION=2024-11-05 rclean",
+    "claude_desktop_config": {
+      "mcpServers": {
+        "rclean": {
+          "command": "rclean",
+          "args": [],
+          "env": {"MCP_VERSION": "2024-11-05"}
+        }
+      }
+    }
+  },
+  "features": [
+    "🔍 Advanced duplicate file detection using MD5 hashing",
+    "📊 Statistical outlier analysis for storage optimization", 
+    "🎯 DBSCAN clustering for similar file grouping",
+    "⚡ High-performance parallel processing with Rayon",
+    "🛡️ Security-focused read-only operations",
+    "📈 Comprehensive file pattern matching (literal, glob, regex)",
+    "💾 CSV export capabilities for detailed reporting",
+    "🏗️ PMAT-certified quality standards with 126+ tests"
+  ],
+  "quality": {
+    "pmat_certified": true,
+    "test_count": "126+",
+    "coverage": "80%+",
+    "security_audited": true,
+    "performance_optimized": true
+  }
+}
