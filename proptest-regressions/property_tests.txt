@@ -1,0 +1,2 @@
+# Seeds for failure cases in proptest tests
+# This file is used by proptest to track failing test cases

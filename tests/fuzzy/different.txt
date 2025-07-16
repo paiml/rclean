@@ -1,0 +1,4 @@
+This is a completely different document.
+It talks about programming and Rust.
+No relation to the other documents.
+Different topic entirely.

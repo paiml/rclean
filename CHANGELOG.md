@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added format checking without modifications
 - Enhanced property-based testing coverage
 
+### Security Notes
+- Known vulnerability RUSTSEC-2025-0003 in fast-float 0.2.0 dependency (via Polars)
+- No upgrade path available as it's a transitive dependency
+- Impact: Limited to CSV parsing functionality, low risk for typical use cases
+
 ## [0.1.0] - Initial Release
 
 ### Added

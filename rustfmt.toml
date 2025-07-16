@@ -1,0 +1,25 @@
+# Strict formatting rules following PMAT standards (stable features only)
+
+# Maximum line width
+max_width = 100
+
+# Use field initialize shorthand
+use_field_init_shorthand = true
+
+# Use try shorthand
+use_try_shorthand = true
+
+# Remove nested parens
+remove_nested_parens = true
+
+# Reorder imports
+reorder_imports = true
+
+# Reorder modules
+reorder_modules = true
+
+# Match block trailing comma
+match_block_trailing_comma = true
+
+# Edition
+edition = "2021"
