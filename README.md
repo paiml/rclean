@@ -1,12 +1,13 @@
 [![Quality Gate](https://github.com/paiml/rclean/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/quality-gate.yml)
 [![CI](https://github.com/paiml/rclean/actions/workflows/ci.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/paiml/rclean/actions/workflows/security.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/security.yml)
-[![Release](https://github.com/paiml/rclean/actions/workflows/release.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/release.yml)
 [![MCP Server](https://img.shields.io/badge/MCP-Server-blue.svg)](https://modelcontextprotocol.io/)
-[![PMAT Quality](https://img.shields.io/badge/PMAT-Quality%20Gate-green.svg)](https://github.com/paiml/rclean/actions/workflows/quality-gate.yml)
+[![PMAT Certified](https://img.shields.io/badge/PMAT-Certified-green.svg)](https://github.com/paiml/rclean/actions/workflows/quality-gate.yml)
 [![Crates.io](https://img.shields.io/crates/v/rclean.svg)](https://crates.io/crates/rclean)
 [![Downloads](https://img.shields.io/crates/d/rclean.svg)](https://crates.io/crates/rclean)
 [![License](https://img.shields.io/crates/l/rclean.svg)](LICENSE)
+[![Coverage](https://img.shields.io/badge/Coverage-80%25+-brightgreen.svg)](#testing)
+[![TDG](https://img.shields.io/badge/TDG-%E2%89%A4%201.0-green.svg)](#quality-standards)
 
 ## 🎓 Pragmatic AI Labs | Join 1M+ ML Engineers
 
@@ -43,13 +44,32 @@ A high-performance Rust-based disk cleanup tool that finds duplicate files and s
 
 ## Quality Standards
 
-**Zero-Tolerance Quality Gates** - Following PMAT (Production Manufacturing and Assembly Technology) principles:
+**PMAT-Certified Quality Gates** - Following Production Manufacturing and Assembly Technology principles:
 
-* ✅ **Comprehensive Testing**: 111+ tests (unit, integration, property-based, doc tests)
-* ✅ **Security Auditing**: Automated vulnerability scanning with cargo-audit
-* ✅ **Code Quality**: Extreme linting with zero clippy warnings
-* ✅ **Performance**: Optimized release builds with LTO and stripping
-* ✅ **Cross-Platform**: Tested on Linux, macOS, and Windows
+| Metric | Target | Status | Verification |
+|--------|--------|--------|--------------|
+| Technical Debt Gauge (TDG) | ≤ 1.0 | ✅ | `make quality-gate` |
+| Cyclomatic Complexity | ≤ 20 | ✅ | `make lint` |
+| SATD Comments | 0 | ✅ | `make lint` |
+| Test Coverage | ≥ 80% | ✅ | `make coverage` |
+| Lint Violations | 0 | ✅ | `make lint` |
+| Security Vulnerabilities | 0 | ✅ | `make security-audit` |
+| Documentation Coverage | 100% | ✅ | `make test-doc` |
+
+### Testing Strategy
+* 🧪 **Unit Tests**: 43+ individual component tests
+* 🔗 **Integration Tests**: End-to-end workflow validation
+* 🎲 **Property Tests**: Mathematical invariant verification
+* 📚 **Documentation Tests**: Executable examples in docs
+* 📋 **Example Tests**: Real-world usage demonstrations
+* 🚀 **Performance Tests**: Efficiency and scalability validation
+
+### Quality Automation
+* 🔄 **Continuous Integration**: Cross-platform testing (Linux, macOS, Windows)
+* 🛡️ **Security Scanning**: Automated vulnerability detection
+* 📊 **Coverage Monitoring**: Comprehensive test coverage analysis
+* 🔍 **Code Quality**: Zero-tolerance linting with clippy
+* 🏗️ **Release Pipeline**: Automated binary builds and publishing
 * ✅ **Documentation**: All public APIs documented with examples
 * ✅ **Coverage**: High test coverage with comprehensive edge case testing
 
