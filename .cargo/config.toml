@@ -1,0 +1,60 @@
+# PMAT Quality Standards - Cargo Configuration
+# Zero tolerance for warnings and maximum optimization
+
+[build]
+# Enhanced build configuration following PMAT style
+
+# Target-specific configurations for PMAT
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=native",          # Optimize for build machine
+    "-C", "link-arg=-Wl,--gc-sections", # Remove unused sections
+]
+
+[target.x86_64-apple-darwin]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+    "-C", "link-arg=-Wl,-dead_strip",   # Remove dead code on macOS
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+    "-C", "link-arg=-Wl,-dead_strip",
+]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "link-arg=/OPT:REF",          # Remove unreferenced functions
+    "-C", "link-arg=/OPT:ICF",          # Identical COMDAT folding
+]
+
+# PMAT aliases for common operations
+[alias]
+# Quality gates
+pmat-check = "check --all-targets --all-features"
+pmat-test = "test --all-features --release"
+pmat-fmt = "fmt --all -- --check"
+pmat-lint = "clippy --all-targets --all-features -- -D warnings"
+
+# Release builds
+pmat-build = "build --release"
+pmat-build-small = "build --profile release-small"
+pmat-install = "install --path . --profile release-small"
+
+# Development
+pmat-dev = "check --all-targets"
+pmat-doc = "doc --no-deps --all-features"
+
+# PMAT Environment Variables
+[env]
+# Ensure reproducible builds
+CARGO_TERM_COLOR = "always"
+RUST_BACKTRACE = { value = "1", condition = { env-set = ["CI"] } }
+
+# Removed unstable flags for compatibility

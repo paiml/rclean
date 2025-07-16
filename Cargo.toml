@@ -1,0 +1,128 @@
+[package]
+name = "rclean"
+version = "0.1.1"
+edition = "2021"
+authors = ["Noah Gift"]
+description = "A high-performance Rust-based disk cleanup tool that finds duplicates and storage outliers"
+repository = "https://github.com/paiml/rclean"
+license = "MIT"
+keywords = ["cleanup", "deduplication", "outliers", "disk-space", "filesystem"]
+categories = ["command-line-utilities", "filesystem"]
+readme = "README.md"
+documentation = "https://docs.rs/rclean"
+homepage = "https://github.com/paiml/rclean"
+include = [
+    "src/**/*",
+    "examples/**/*",
+    "Cargo.toml",
+    "README.md",
+    "CLAUDE.md",
+    "LICENSE"
+]
+
+[[bin]]
+name = "rclean"
+path = "src/main.rs"
+
+[dependencies]
+clap = {version="4.0.32", features=["derive"]}
+walkdir = "2.3.2"
+ignore = "0.4"
+globset = "0.4"
+regex = "1.10"
+md5 = "0.7.0"
+rayon = "1.6.1"
+indicatif = {version = "0.18", features = ["rayon"]}
+polars = {version = "0.35", features = ["lazy", "csv"]}
+num_cpus = "1.16"
+# Fuzzy matching
+ssdeep = "0.6"
+strsim = "0.11"
+# Table formatting
+comfy-table = "7.1"
+# Clustering support
+ndarray = { version = "0.15", features = ["rayon"] }
+linfa = "0.7.0"
+linfa-clustering = "0.7.0"
+thiserror = "1.0"
+# MCP support
+tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "net", "io-util", "io-std", "fs", "sync"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "2.0.0"
+proptest = "1.4"
+tempfile = "3.8"
+
+# Enhanced Quality Standards following PMAT principles
+[lints.rust]
+unsafe_code = "forbid"
+# Reduced from warn to allow for existing code
+missing_docs = "allow"
+missing_debug_implementations = "allow"
+missing_copy_implementations = "allow"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+unused_extern_crates = "warn"
+
+[lints.clippy]
+# Quality linting inspired by PMAT principles but practical for existing code
+# Critical issues only
+unwrap_used = "allow"  # Too many existing instances
+expect_used = "allow"  # Too many existing instances
+panic = "allow"        # Tests use panic!
+# Allow most pedantic lints for compatibility
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+multiple_crate_versions = "allow"
+implicit_hasher = "allow"
+wildcard_imports = "allow"
+too_many_arguments = "allow"
+missing_docs_in_private_items = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+unused_async = "allow"
+items_after_statements = "allow"
+
+# PMAT Binary Optimization Profiles
+[profile.release]
+# Maximum optimization for binary size and performance
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+overflow-checks = false
+
+[profile.release-small]
+# Optimized for smallest binary size (PMAT standard)
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+# Fast compilation for development
+opt-level = 0
+debug = true
+panic = "unwind"
+overflow-checks = true
+
+[profile.test]
+# Optimized testing profile
+opt-level = 1
+debug = true
+overflow-checks = true
