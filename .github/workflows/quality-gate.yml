@@ -36,16 +36,12 @@ jobs:
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y make
       
-    - name: Install cargo-audit
+    - name: Install cargo tools (skip if timeout)
       run: |
-        wget -qO- https://github.com/RustSec/rustsec/releases/latest/download/cargo-audit-x86_64-unknown-linux-musl.tgz | tar -xz
-        sudo mv cargo-audit /usr/local/bin/ || cargo install cargo-audit --quiet
+        echo "Installing cargo tools with timeout protection..."
+        timeout 300 cargo install cargo-audit --quiet || echo "cargo-audit installation skipped due to timeout"
+        timeout 300 cargo install cargo-tarpaulin --quiet || echo "cargo-tarpaulin installation skipped due to timeout"
       continue-on-error: true
-      
-    - name: Install cargo-tarpaulin
-      run: cargo install cargo-tarpaulin --quiet
-      continue-on-error: true
-      timeout-minutes: 10
         
     - name: Format Check
       run: make format-check
