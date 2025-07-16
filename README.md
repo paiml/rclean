@@ -2,6 +2,8 @@
 [![CI](https://github.com/paiml/rclean/actions/workflows/ci.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/paiml/rclean/actions/workflows/security.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/security.yml)
 [![Release](https://github.com/paiml/rclean/actions/workflows/release.yml/badge.svg)](https://github.com/paiml/rclean/actions/workflows/release.yml)
+[![MCP Server](https://img.shields.io/badge/MCP-Server-blue.svg)](https://modelcontextprotocol.io/)
+[![PMAT Quality](https://img.shields.io/badge/PMAT-Quality%20Gate-green.svg)](https://github.com/paiml/rclean/actions/workflows/quality-gate.yml)
 [![Crates.io](https://img.shields.io/crates/v/rclean.svg)](https://crates.io/crates/rclean)
 [![Downloads](https://img.shields.io/crates/d/rclean.svg)](https://crates.io/crates/rclean)
 [![License](https://img.shields.io/crates/l/rclean.svg)](LICENSE)
