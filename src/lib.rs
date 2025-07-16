@@ -179,10 +179,10 @@ pub fn walk(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
                 // Check if it's a recoverable error
                 if let Some(io_err) = err.io_error() {
                     match io_err.kind() {
-                        std::io::ErrorKind::PermissionDenied |
-                        std::io::ErrorKind::InvalidInput |
-                        std::io::ErrorKind::InvalidData |
-                        std::io::ErrorKind::NotFound => {
+                        std::io::ErrorKind::PermissionDenied
+                        | std::io::ErrorKind::InvalidInput
+                        | std::io::ErrorKind::InvalidData
+                        | std::io::ErrorKind::NotFound => {
                             permission_errors += 1;
                             // Continue walking, don't fail on these errors
                             continue;
@@ -190,7 +190,7 @@ pub fn walk(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
                         _ => {
                             // For other IO errors, propagate them
                             return Err(Box::new(err));
-                        }
+                        },
                     }
                 }
                 // For non-IO errors, propagate them
@@ -245,10 +245,10 @@ pub fn walk_with_options(path: &str, options: &WalkOptions) -> Result<Vec<String
                 // Check if it's a recoverable error
                 if let Some(io_err) = err.io_error() {
                     match io_err.kind() {
-                        std::io::ErrorKind::PermissionDenied |
-                        std::io::ErrorKind::InvalidInput |
-                        std::io::ErrorKind::InvalidData |
-                        std::io::ErrorKind::NotFound => {
+                        std::io::ErrorKind::PermissionDenied
+                        | std::io::ErrorKind::InvalidInput
+                        | std::io::ErrorKind::InvalidData
+                        | std::io::ErrorKind::NotFound => {
                             permission_errors += 1;
                             // Continue walking, don't fail on these errors
                             continue;
@@ -256,7 +256,7 @@ pub fn walk_with_options(path: &str, options: &WalkOptions) -> Result<Vec<String
                         _ => {
                             // For other IO errors, propagate them
                             return Err(Box::new(err));
-                        }
+                        },
                     }
                 }
                 // For non-IO errors, propagate them
@@ -505,16 +505,19 @@ pub fn validate_duplicates(df: &DataFrame) -> Result<(), Box<dyn Error>> {
     let max_display = 50; // Limit output to prevent terminal overflow
     let total_groups = grouped.height();
     let display_count = std::cmp::min(max_display, total_groups);
-    
+
     for row in 0..display_count {
         let hash = grouped.column("md5_hash")?.get(row)?;
         let count = grouped.column("file_count")?.get(row)?;
         println!("  Hash: {hash} -> {count} files");
     }
-    
+
     if total_groups > max_display {
-        println!("  ... and {} more duplicate groups (showing first {})", 
-                total_groups - max_display, max_display);
+        println!(
+            "  ... and {} more duplicate groups (showing first {})",
+            total_groups - max_display,
+            max_display
+        );
     }
 
     println!("✓ Duplicate detection validation completed");
@@ -1074,13 +1077,13 @@ mod tests {
         fs::write(dir.join("file3.txt"), "content3")?;
         fs::write(dir.join("file4.rs"), "rust code")?;
         fs::write(dir.join(".hidden"), "hidden file")?;
-        
+
         // Create subdirectory
         let subdir = dir.join("subdir");
         fs::create_dir(&subdir)?;
         fs::write(subdir.join("file5.txt"), "content5")?;
         fs::write(subdir.join("file6.txt"), "content1")?; // Another duplicate
-        
+
         Ok(vec![
             dir.join("file1.txt").to_string_lossy().to_string(),
             dir.join("file2.txt").to_string_lossy().to_string(),
@@ -1103,11 +1106,11 @@ mod tests {
     fn test_walk() -> Result<(), Box<dyn Error>> {
         let temp_dir = TempDir::new()?;
         let _files = create_test_files(temp_dir.path())?;
-        
+
         let walked_files = walk(temp_dir.path().to_str().unwrap())?;
         // Should find at least the non-hidden files
         assert!(walked_files.len() >= 6);
-        
+
         Ok(())
     }
 
@@ -1115,7 +1118,7 @@ mod tests {
     fn test_walk_with_options() -> Result<(), Box<dyn Error>> {
         let temp_dir = TempDir::new()?;
         let _files = create_test_files(temp_dir.path())?;
-        
+
         // Test with hidden files included
         let options = WalkOptions {
             include_hidden: true,
@@ -1123,10 +1126,10 @@ mod tests {
             respect_ignore: false,
             max_depth: None,
         };
-        
+
         let walked_files = walk_with_options(temp_dir.path().to_str().unwrap(), &options)?;
         assert!(walked_files.iter().any(|f| f.contains(".hidden")));
-        
+
         // Test with max depth
         let options = WalkOptions {
             include_hidden: false,
@@ -1134,11 +1137,11 @@ mod tests {
             respect_ignore: true,
             max_depth: Some(1),
         };
-        
+
         let walked_files = walk_with_options(temp_dir.path().to_str().unwrap(), &options)?;
         // Should not find files in subdirectory
         assert!(!walked_files.iter().any(|f| f.contains("subdir")));
-        
+
         Ok(())
     }
 
@@ -1150,15 +1153,15 @@ mod tests {
             "test_data.txt".to_string(),
             "readme.md".to_string(),
         ];
-        
+
         let matches = find(&files, "test");
         assert_eq!(matches.len(), 2);
         assert!(matches.contains(&"test.txt".to_string()));
         assert!(matches.contains(&"test_data.txt".to_string()));
-        
+
         let matches = find(&files, ".txt");
         assert_eq!(matches.len(), 2);
-        
+
         let matches = find(&files, "");
         assert_eq!(matches.len(), 4);
     }
@@ -1170,7 +1173,7 @@ mod tests {
             "data.csv".to_string(),
             "test_data.txt".to_string(),
         ];
-        
+
         let pattern = PatternType::Literal("test".to_string());
         let matches = find_advanced(&files, &pattern);
         assert_eq!(matches.len(), 2);
@@ -1183,16 +1186,16 @@ mod tests {
             "data.csv".to_string(),
             "test.rs".to_string(),
         ];
-        
+
         let mut builder = GlobSetBuilder::new();
         builder.add(Glob::new("*.txt")?);
         let globset = builder.build()?;
         let pattern = PatternType::Glob(globset);
-        
+
         let matches = find_advanced(&files, &pattern);
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0], "test.txt");
-        
+
         Ok(())
     }
 
@@ -1203,14 +1206,14 @@ mod tests {
             "data.csv".to_string(),
             "test123.txt".to_string(),
         ];
-        
+
         let regex = Regex::new(r"test\d+\.txt")?;
         let pattern = PatternType::Regex(regex);
-        
+
         let matches = find_advanced(&files, &pattern);
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0], "test123.txt");
-        
+
         Ok(())
     }
 
@@ -1221,13 +1224,13 @@ mod tests {
         // Use longer content to avoid ssdeep issues with small files
         let content = "test content that is long enough to avoid ssdeep crashes";
         fs::write(&test_file, content)?;
-        
+
         let file_info = FileInfo::new(test_file.to_str().unwrap())?;
         assert_eq!(file_info.name, "test.txt");
         assert_eq!(file_info.extension, "txt");
         assert_eq!(file_info.size_bytes, content.len() as u64);
         assert!(!file_info.md5_hash.is_empty());
-        
+
         Ok(())
     }
 
@@ -1237,23 +1240,23 @@ mod tests {
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
         let file3 = temp_dir.path().join("file3.txt");
-        
+
         fs::write(&file1, "duplicate content")?;
         fs::write(&file2, "duplicate content")?;
         fs::write(&file3, "unique content")?;
-        
+
         let files = vec![
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
             file3.to_string_lossy().to_string(),
         ];
-        
+
         let checksums = checksum(&files)?;
         let duplicates = find_duplicates(checksums);
-        
+
         assert_eq!(duplicates.len(), 1);
         assert_eq!(duplicates[0].len(), 2);
-        
+
         Ok(())
     }
 
@@ -1262,16 +1265,16 @@ mod tests {
         // Test with identical hashes
         let hash1 = "3:AXGBicFlgVNhBGcL6wCrFQEv:AXGHsNhxLsr2C";
         let hash2 = "3:AXGBicFlgVNhBGcL6wCrFQEv:AXGHsNhxLsr2C";
-        
+
         let score = calculate_similarity(hash1, hash2)?;
         assert_eq!(score, 100);
-        
+
         // Test with different hashes
         let hash3 = "3:RlFgVNhBGcL6wCrFQEv:RlFxLsr2C";
         let score = calculate_similarity(hash1, hash3)?;
         assert!(score < 100);
         // Score is u32, so >= 0 is always true
-        
+
         Ok(())
     }
 
@@ -1289,13 +1292,13 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let test_file = temp_dir.path().join("test.txt");
         fs::write(&test_file, "test content")?;
-        
+
         let files = vec![test_file.to_string_lossy().to_string()];
         let file_infos = collect_file_info(&files)?;
-        
+
         assert_eq!(file_infos.len(), 1);
         assert_eq!(file_infos[0].name, "test.txt");
-        
+
         Ok(())
     }
 
@@ -1304,21 +1307,21 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
-        
+
         fs::write(&file1, "content")?;
         fs::write(&file2, "content")?;
-        
+
         let files = vec![
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
         ];
-        
+
         let file_infos = collect_file_info(&files)?;
         let df = create_dataframe(file_infos)?;
-        
+
         assert_eq!(df.height(), 2);
         assert!(df.column("is_duplicate").is_ok());
-        
+
         Ok(())
     }
 
@@ -1327,14 +1330,14 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let empty_file = temp_dir.path().join("empty.txt");
         fs::write(&empty_file, "")?;
-        
+
         let files = vec![empty_file.to_string_lossy().to_string()];
         let file_infos = collect_file_info(&files)?;
-        
+
         assert_eq!(file_infos.len(), 1);
         assert_eq!(file_infos[0].size_bytes, 0);
         assert!(file_infos[0].fuzzy_hash.is_none()); // Too small for fuzzy hash
-        
+
         Ok(())
     }
 
@@ -1343,23 +1346,23 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
-        
+
         fs::write(&file1, "content")?;
         fs::write(&file2, "different")?;
-        
+
         let files = vec![
             file1.to_string_lossy().to_string(),
             file2.to_string_lossy().to_string(),
         ];
-        
+
         let file_infos = collect_file_info(&files)?;
         let df = create_dataframe(file_infos)?;
         let stats = generate_statistics(&df)?;
-        
+
         assert!(stats.height() > 0);
         assert!(stats.column("metric").is_ok());
         assert!(stats.column("value").is_ok());
-        
+
         Ok(())
     }
 
@@ -1368,18 +1371,14 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let file1 = temp_dir.path().join("test1.txt");
         let file2 = temp_dir.path().join("test2.txt");
-        
+
         fs::write(&file1, "test content")?;
         fs::write(&file2, "test content")?; // Duplicate
-        
-        let df = run_with_dataframe(
-            temp_dir.path().to_str().unwrap(),
-            "test",
-            None,
-        )?;
-        
+
+        let df = run_with_dataframe(temp_dir.path().to_str().unwrap(), "test", None)?;
+
         assert!(df.height() >= 2);
-        
+
         // Test with CSV output
         let csv_path = temp_dir.path().join("output.csv");
         let _df = run_with_dataframe(
@@ -1387,9 +1386,9 @@ mod tests {
             "test",
             Some(csv_path.to_str().unwrap()),
         )?;
-        
+
         assert!(csv_path.exists());
-        
+
         Ok(())
     }
 
@@ -1406,10 +1405,10 @@ mod tests {
             "is_duplicate" => vec![true, true, false],
             "duplicate_group" => vec![Some("hash1"), Some("hash1"), None],
         ]?;
-        
+
         // Should not error
         validate_duplicates(&df)?;
-        
+
         Ok(())
     }
 
@@ -1449,11 +1448,11 @@ mod tests {
                 modified: None,
             },
         ];
-        
+
         let similar_groups = find_similar_files(&file_infos, 90)?;
         assert_eq!(similar_groups.len(), 1);
         assert_eq!(similar_groups[0].len(), 2);
-        
+
         Ok(())
     }
 
@@ -1462,10 +1461,10 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let file1 = temp_dir.path().join("test.txt");
         fs::write(&file1, "test")?;
-        
+
         // Should not panic
         run(temp_dir.path().to_str().unwrap(), "test")?;
-        
+
         Ok(())
     }
 
@@ -1479,7 +1478,7 @@ mod tests {
     #[test]
     fn test_generate_csv_report() -> Result<(), Box<dyn Error>> {
         let temp_dir = TempDir::new()?;
-        
+
         // Create DataFrame with duplicates
         let mut df = df! [
             "file_path" => vec!["file1.txt", "file2.txt"],
@@ -1491,12 +1490,12 @@ mod tests {
             "is_duplicate" => vec![true, true],
             "duplicate_group" => vec![Some("hash1"), Some("hash1")],
         ]?;
-        
+
         let csv_path = temp_dir.path().join("duplicates.csv");
         generate_csv_report(&mut df, csv_path.to_str().unwrap())?;
-        
+
         assert!(csv_path.exists());
-        
+
         Ok(())
     }
 }

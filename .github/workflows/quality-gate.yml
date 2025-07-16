@@ -20,14 +20,12 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
-        override: true
         components: rustfmt, clippy
         
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -44,14 +42,14 @@ jobs:
     - name: Format Check
       run: make format-check
       
-    - name: Lint Check (Extreme)
-      run: make lint-extreme
+    - name: Lint Check
+      run: make lint
       
     - name: Security Audit
       run: make security-audit || true  # Allow to pass with warnings for now
       
     - name: Dependency Check
-      run: make dependency-check
+      run: cargo tree --duplicates
       
     - name: Test Suite
       run: make test

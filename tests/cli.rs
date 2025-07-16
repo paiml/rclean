@@ -14,7 +14,9 @@ fn usage() {
     cmd.arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("A disk cleanup tool that finds duplicates and storage outliers"));
+        .stdout(predicate::str::contains(
+            "A disk cleanup tool that finds duplicates and storage outliers",
+        ));
 }
 
 #[test]

@@ -30,7 +30,7 @@ fn test_outlier_options_custom() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     assert_eq!(options.min_size, Some(1024 * 1024));
     assert_eq!(options.top_n, Some(10));
     assert_eq!(options.std_dev_threshold, 3.0);
@@ -46,9 +46,9 @@ fn test_outlier_options_custom() {
 fn test_detect_outliers_empty_directory() {
     let temp_dir = TempDir::new().unwrap();
     let options = OutlierOptions::default();
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
+
     assert_eq!(report.large_files.len(), 0);
     assert_eq!(report.hidden_consumers.len(), 0);
     assert_eq!(report.pattern_groups.len(), 0);
@@ -60,14 +60,14 @@ fn test_detect_outliers_empty_directory() {
 #[test]
 fn test_detect_large_file_outliers() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create files with varying sizes (all large enough to avoid ssdeep issues)
     fs::write(temp_dir.path().join("small1.txt"), "a".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("small2.txt"), "a".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("small3.txt"), "a".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("medium.txt"), "a".repeat(50000)).unwrap();
     fs::write(temp_dir.path().join("large.txt"), "a".repeat(500000)).unwrap();
-    
+
     let options = OutlierOptions {
         min_size: None,
         top_n: Some(5),
@@ -79,11 +79,14 @@ fn test_detect_large_file_outliers() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
+
     assert!(!report.large_files.is_empty());
-    assert!(report.large_files[0].path.to_string_lossy().contains("large.txt"));
+    assert!(report.large_files[0]
+        .path
+        .to_string_lossy()
+        .contains("large.txt"));
     assert!(report.large_files[0].size_bytes > 400000);
     assert!(report.large_files[0].std_devs_from_mean > 1.5);
 }
@@ -91,18 +94,18 @@ fn test_detect_large_file_outliers() {
 #[test]
 fn test_detect_hidden_consumers() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create a node_modules directory
     let node_modules = temp_dir.path().join("node_modules");
     fs::create_dir(&node_modules).unwrap();
     fs::write(node_modules.join("package1.js"), "a".repeat(50000)).unwrap();
     fs::write(node_modules.join("package2.js"), "a".repeat(50000)).unwrap();
-    
+
     // Create a .git directory
     let git_dir = temp_dir.path().join(".git");
     fs::create_dir(&git_dir).unwrap();
     fs::write(git_dir.join("objects"), "a".repeat(100000)).unwrap();
-    
+
     let options = OutlierOptions {
         min_size: None,
         top_n: Some(10),
@@ -114,11 +117,13 @@ fn test_detect_hidden_consumers() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
+
     assert!(!report.hidden_consumers.is_empty());
-    let node_modules_found = report.hidden_consumers.iter()
+    let node_modules_found = report
+        .hidden_consumers
+        .iter()
         .any(|c| c.pattern_type.contains("Node.js"));
     assert!(node_modules_found);
 }
@@ -126,17 +131,29 @@ fn test_detect_hidden_consumers() {
 #[test]
 fn test_detect_pattern_groups() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create files with patterns
     fs::write(temp_dir.path().join("backup-001.tar"), "data".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("backup-002.tar"), "data".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("backup-003.tar"), "data".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("backup-004.tar"), "data".repeat(10000)).unwrap();
-    
-    fs::write(temp_dir.path().join("log-2024-01-01.txt"), "log".repeat(5000)).unwrap();
-    fs::write(temp_dir.path().join("log-2024-01-02.txt"), "log".repeat(5000)).unwrap();
-    fs::write(temp_dir.path().join("log-2024-01-03.txt"), "log".repeat(5000)).unwrap();
-    
+
+    fs::write(
+        temp_dir.path().join("log-2024-01-01.txt"),
+        "log".repeat(5000),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("log-2024-01-02.txt"),
+        "log".repeat(5000),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("log-2024-01-03.txt"),
+        "log".repeat(5000),
+    )
+    .unwrap();
+
     let options = OutlierOptions {
         min_size: None,
         top_n: Some(10),
@@ -148,11 +165,17 @@ fn test_detect_pattern_groups() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
-    assert!(!report.pattern_groups.is_empty(), "Expected at least 1 pattern group, but found {}", report.pattern_groups.len());
-    let backup_pattern_found = report.pattern_groups.iter()
+
+    assert!(
+        !report.pattern_groups.is_empty(),
+        "Expected at least 1 pattern group, but found {}",
+        report.pattern_groups.len()
+    );
+    let backup_pattern_found = report
+        .pattern_groups
+        .iter()
         .any(|g| g.pattern.contains("backup"));
     assert!(backup_pattern_found, "Expected to find a backup pattern");
 }
@@ -182,9 +205,9 @@ fn test_outliers_to_dataframe() {
         total_size_analyzed: 1024 * 1024 * 20, // 20MB
         total_files_analyzed: 10,
     };
-    
+
     let df = outliers_to_dataframe(&report).unwrap();
-    
+
     assert_eq!(df.height(), 2);
     assert_eq!(df.width(), 4);
     assert!(df.column("file_path").is_ok());
@@ -203,9 +226,9 @@ fn test_outliers_to_dataframe_empty() {
         total_size_analyzed: 0,
         total_files_analyzed: 0,
     };
-    
+
     let df = outliers_to_dataframe(&report).unwrap();
-    
+
     assert_eq!(df.height(), 0);
     assert_eq!(df.width(), 4);
 }
@@ -213,12 +236,12 @@ fn test_outliers_to_dataframe_empty() {
 #[test]
 fn test_min_size_filter() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create files of different sizes
     fs::write(temp_dir.path().join("tiny.txt"), "a".repeat(1000)).unwrap();
     fs::write(temp_dir.path().join("small.txt"), "a".repeat(10000)).unwrap();
     fs::write(temp_dir.path().join("large.txt"), "a".repeat(100000)).unwrap();
-    
+
     let options = OutlierOptions {
         min_size: Some(5000), // Only consider files > 5KB
         top_n: Some(10),
@@ -230,9 +253,9 @@ fn test_min_size_filter() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
+
     // Only the large file should be considered
     for outlier in &report.large_files {
         assert!(outlier.size_bytes >= 5000);
@@ -242,19 +265,20 @@ fn test_min_size_filter() {
 #[test]
 fn test_top_n_limiting() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create many files
     for i in 0..10 {
         let size = 10000 + (i * 10000);
         fs::write(
             temp_dir.path().join(format!("file{}.txt", i)),
             "a".repeat(size),
-        ).unwrap();
+        )
+        .unwrap();
     }
-    
+
     let options = OutlierOptions {
         min_size: None,
-        top_n: Some(3), // Limit to top 3
+        top_n: Some(3),         // Limit to top 3
         std_dev_threshold: 0.1, // Very low threshold
         check_hidden_consumers: false,
         include_empty_dirs: false,
@@ -263,14 +287,14 @@ fn test_top_n_limiting() {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     let report = detect_outliers(temp_dir.path().to_str().unwrap(), &options).unwrap();
-    
+
     assert!(report.large_files.len() <= 3);
-    
+
     // Verify they are sorted by size (largest first)
     for i in 1..report.large_files.len() {
-        assert!(report.large_files[i-1].size_bytes >= report.large_files[i].size_bytes);
+        assert!(report.large_files[i - 1].size_bytes >= report.large_files[i].size_bytes);
     }
 }
 
@@ -280,9 +304,9 @@ fn test_top_n_limiting() {
 #[test]
 fn test_error_handling_nonexistent_path() {
     let options = OutlierOptions::default();
-    
+
     let result = detect_outliers("/nonexistent/path/that/does/not/exist", &options);
-    
+
     // Should handle gracefully and return ok with empty results
     assert!(result.is_ok());
     let report = result.unwrap();

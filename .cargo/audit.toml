@@ -1,0 +1,6 @@
+[advisories]
+# Known issues with no current fix available
+ignore = [
+    "RUSTSEC-2025-0003",  # fast-float segfault - transitive dependency via Polars
+    "RUSTSEC-2024-0379"   # fast-float soundness issues - transitive dependency via Polars
+]

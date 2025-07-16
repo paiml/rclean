@@ -138,7 +138,7 @@ mod tests {
         let response = server.handle_request(request).await;
         assert!(response.result.is_none());
         assert!(response.error.is_some());
-        
+
         let error = response.error.unwrap();
         assert_eq!(error.code, -32601);
         assert!(error.message.contains("Method not found"));

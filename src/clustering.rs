@@ -24,13 +24,13 @@ struct DbscanContext<'a> {
 pub enum ClusteringError {
     #[error("Insufficient files for clustering: {0} < {1}")]
     InsufficientFiles(usize, usize),
-    
+
     #[error("Invalid similarity threshold: {0} (must be 50-100)")]
     InvalidSimilarity(u8),
-    
+
     #[error("DBSCAN failed: {0}")]
     DbscanError(String),
-    
+
     #[error("Hash computation failed: {0}")]
     HashError(String),
 }
@@ -69,22 +69,23 @@ pub fn similarity_to_distance(similarity: u8) -> f64 {
 pub fn build_distance_matrix(files: &[SimpleFileInfo]) -> Array2<f64> {
     let n = files.len();
     let mut distances = Array2::zeros((n, n));
-    
+
     // Parallel computation of upper triangle
-    let upper_triangle: Vec<_> = (0..n).into_par_iter()
-        .flat_map(|i| (i+1..n).into_par_iter().map(move |j| (i, j)))
+    let upper_triangle: Vec<_> = (0..n)
+        .into_par_iter()
+        .flat_map(|i| (i + 1..n).into_par_iter().map(move |j| (i, j)))
         .map(|(i, j)| {
             let sim = calculate_similarity_safe(&files[i], &files[j]);
             (i, j, similarity_to_distance(sim))
         })
         .collect();
-    
+
     // Fill symmetric matrix
     for (i, j, dist) in upper_triangle {
         distances[[i, j]] = dist;
         distances[[j, i]] = dist;
     }
-    
+
     distances
 }
 
@@ -94,7 +95,7 @@ fn calculate_similarity_safe(a: &SimpleFileInfo, b: &SimpleFileInfo) -> u8 {
         (Some(h1), Some(h2)) => {
             // Use ssdeep to calculate similarity
             ssdeep::compare(h1, h2).unwrap_or(0)
-        }
+        },
         _ => 0,
     }
 }
@@ -116,30 +117,34 @@ pub fn detect_large_file_clusters(
     if !(50..=100).contains(&min_similarity) {
         return Err(ClusteringError::InvalidSimilarity(min_similarity));
     }
-    
+
     if files.len() < min_cluster_size {
         return Ok(vec![]);
     }
-    
+
     // Filter files with SSDEEP hashes
-    let hashable_files: Vec<_> = files.iter()
+    let hashable_files: Vec<_> = files
+        .iter()
         .filter(|f| f.ssdeep_hash.is_some())
         .cloned()
         .collect();
-    
+
     if hashable_files.len() < min_cluster_size {
         return Ok(vec![]);
     }
-    
+
     let distances = build_distance_matrix(&hashable_files);
     let epsilon = similarity_to_distance(min_similarity);
-    
+
     // Use custom DBSCAN implementation since linfa's API is complex
     let cluster_labels = simple_dbscan(&distances, epsilon, min_cluster_size);
-    
-    Ok(aggregate_clusters(&hashable_files, cluster_labels, &distances))
-}
 
+    Ok(aggregate_clusters(
+        &hashable_files,
+        cluster_labels,
+        &distances,
+    ))
+}
 
 /// Simple DBSCAN implementation
 fn simple_dbscan(distances: &Array2<f64>, epsilon: f64, min_points: usize) -> Vec<Option<usize>> {
@@ -147,18 +152,16 @@ fn simple_dbscan(distances: &Array2<f64>, epsilon: f64, min_points: usize) -> Ve
     let mut labels = vec![None; n];
     let mut visited = vec![false; n];
     let mut cluster_id = 0;
-    
+
     for i in 0..n {
         if visited[i] {
             continue;
         }
         visited[i] = true;
-        
+
         // Find neighbors within epsilon distance
-        let neighbors: Vec<usize> = (0..n)
-            .filter(|&j| distances[[i, j]] <= epsilon)
-            .collect();
-        
+        let neighbors: Vec<usize> = (0..n).filter(|&j| distances[[i, j]] <= epsilon).collect();
+
         if neighbors.len() >= min_points {
             // Start a new cluster
             let mut ctx = DbscanContext {
@@ -172,32 +175,27 @@ fn simple_dbscan(distances: &Array2<f64>, epsilon: f64, min_points: usize) -> Ve
             cluster_id += 1;
         }
     }
-    
+
     labels
 }
 
 /// Expand cluster by recursively adding density-reachable points
-fn expand_cluster(
-    point: usize,
-    neighbors: &[usize],
-    cluster_id: usize,
-    ctx: &mut DbscanContext,
-) {
+fn expand_cluster(point: usize, neighbors: &[usize], cluster_id: usize, ctx: &mut DbscanContext) {
     ctx.labels[point] = Some(cluster_id);
     let mut seed_set = neighbors.to_vec();
     let mut i = 0;
-    
+
     while i < seed_set.len() {
         let q = seed_set[i];
-        
+
         if !ctx.visited[q] {
             ctx.visited[q] = true;
-            
+
             // Find neighbors of q
             let q_neighbors: Vec<usize> = (0..ctx.distances.shape()[0])
                 .filter(|&j| ctx.distances[[q, j]] <= ctx.epsilon)
                 .collect();
-            
+
             if q_neighbors.len() >= ctx.min_points {
                 // Add new neighbors to seed set
                 for &neighbor in &q_neighbors {
@@ -207,11 +205,11 @@ fn expand_cluster(
                 }
             }
         }
-        
+
         if ctx.labels[q].is_none() {
             ctx.labels[q] = Some(cluster_id);
         }
-        
+
         i += 1;
     }
 }
@@ -223,14 +221,15 @@ fn aggregate_clusters(
     distances: &Array2<f64>,
 ) -> Vec<LargeFileCluster> {
     let mut cluster_map: HashMap<usize, Vec<usize>> = HashMap::new();
-    
+
     for (idx, label) in cluster_labels.iter().enumerate() {
         if let Some(cluster_id) = label {
             cluster_map.entry(*cluster_id).or_default().push(idx);
         }
     }
-    
-    cluster_map.into_iter()
+
+    cluster_map
+        .into_iter()
         .map(|(id, indices)| build_cluster_info(id, &indices, files, distances))
         .collect()
 }
@@ -242,14 +241,12 @@ fn build_cluster_info(
     files: &[SimpleFileInfo],
     distances: &Array2<f64>,
 ) -> LargeFileCluster {
-    let cluster_files: Vec<_> = indices.iter()
-        .map(|&i| files[i].clone())
-        .collect();
-    
+    let cluster_files: Vec<_> = indices.iter().map(|&i| files[i].clone()).collect();
+
     let total_size = cluster_files.iter().map(|f| f.size_bytes).sum();
     let avg_similarity = calculate_avg_similarity(indices, distances);
     let density = calculate_density(indices, distances);
-    
+
     LargeFileCluster {
         cluster_id,
         files: cluster_files,
@@ -264,18 +261,18 @@ fn calculate_avg_similarity(indices: &[usize], distances: &Array2<f64>) -> f64 {
     if indices.len() <= 1 {
         return 100.0;
     }
-    
+
     let mut total_similarity = 0.0;
     let mut count = 0;
-    
+
     for i in 0..indices.len() {
-        for j in i+1..indices.len() {
+        for j in i + 1..indices.len() {
             let distance = distances[[indices[i], indices[j]]];
             total_similarity += 100.0 - distance;
             count += 1;
         }
     }
-    
+
     if count > 0 {
         total_similarity / count as f64
     } else {
@@ -288,26 +285,26 @@ fn calculate_density(indices: &[usize], distances: &Array2<f64>) -> f64 {
     if indices.len() <= 1 {
         return 1.0;
     }
-    
+
     let max_edges = indices.len() * (indices.len() - 1) / 2;
     let mut edges_within_epsilon = 0;
-    
+
     // Count edges with distance < 30 (similarity > 70)
     for i in 0..indices.len() {
-        for j in i+1..indices.len() {
+        for j in i + 1..indices.len() {
             if distances[[indices[i], indices[j]]] < 30.0 {
                 edges_within_epsilon += 1;
             }
         }
     }
-    
+
     edges_within_epsilon as f64 / max_edges as f64
 }
 
 /// Locality-sensitive hashing for pre-filtering
 pub fn compute_lsh_buckets(files: &[SimpleFileInfo]) -> HashMap<u64, Vec<SimpleFileInfo>> {
     let mut buckets = HashMap::new();
-    
+
     for file in files {
         if let Some(hash) = &file.ssdeep_hash {
             // Extract block size and chunk for bucketing
@@ -316,11 +313,14 @@ pub fn compute_lsh_buckets(files: &[SimpleFileInfo]) -> HashMap<u64, Vec<SimpleF
                 let block_size = parts[0].parse::<u64>().unwrap_or(0);
                 let chunk = &parts[1][..parts[1].len().min(8)];
                 let bucket_key = hash_combine(block_size, chunk);
-                buckets.entry(bucket_key).or_insert_with(Vec::new).push(file.clone());
+                buckets
+                    .entry(bucket_key)
+                    .or_insert_with(Vec::new)
+                    .push(file.clone());
             }
         }
     }
-    
+
     buckets
 }
 
@@ -328,7 +328,7 @@ pub fn compute_lsh_buckets(files: &[SimpleFileInfo]) -> HashMap<u64, Vec<SimpleF
 fn hash_combine(block_size: u64, chunk: &str) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
     block_size.hash(&mut hasher);
     chunk.hash(&mut hasher);
@@ -345,22 +345,19 @@ pub fn detect_clusters_batched(
     if files.len() <= batch_size {
         return detect_large_file_clusters(files, min_similarity, min_cluster_size);
     }
-    
+
     // Use LSH for pre-filtering
     let lsh_buckets = compute_lsh_buckets(files);
     let mut all_clusters = Vec::new();
-    
+
     for bucket in lsh_buckets.values() {
         if bucket.len() >= min_cluster_size {
-            let batch_clusters = detect_large_file_clusters(
-                bucket,
-                min_similarity,
-                min_cluster_size
-            )?;
+            let batch_clusters =
+                detect_large_file_clusters(bucket, min_similarity, min_cluster_size)?;
             all_clusters.extend(batch_clusters);
         }
     }
-    
+
     // Merge overlapping clusters
     Ok(merge_overlapping_clusters(all_clusters))
 }
@@ -370,29 +367,26 @@ fn merge_overlapping_clusters(clusters: Vec<LargeFileCluster>) -> Vec<LargeFileC
     if clusters.is_empty() {
         return vec![];
     }
-    
+
     let mut merged = Vec::new();
     let mut processed = HashSet::new();
-    
+
     for (i, cluster) in clusters.iter().enumerate() {
         if processed.contains(&i) {
             continue;
         }
-        
+
         let mut merged_cluster = cluster.clone();
-        let mut file_paths: HashSet<_> = cluster.files.iter()
-            .map(|f| &f.path)
-            .collect();
-        
+        let mut file_paths: HashSet<_> = cluster.files.iter().map(|f| &f.path).collect();
+
         // Find overlapping clusters
         for (j, other) in clusters.iter().enumerate().skip(i + 1) {
             if processed.contains(&j) {
                 continue;
             }
-            
-            let overlap = other.files.iter()
-                .any(|f| file_paths.contains(&f.path));
-            
+
+            let overlap = other.files.iter().any(|f| file_paths.contains(&f.path));
+
             if overlap {
                 // Merge clusters
                 for file in &other.files {
@@ -404,16 +398,14 @@ fn merge_overlapping_clusters(clusters: Vec<LargeFileCluster>) -> Vec<LargeFileC
                 processed.insert(j);
             }
         }
-        
+
         // Recalculate metrics
-        merged_cluster.total_size = merged_cluster.files.iter()
-            .map(|f| f.size_bytes)
-            .sum();
-        
+        merged_cluster.total_size = merged_cluster.files.iter().map(|f| f.size_bytes).sum();
+
         merged.push(merged_cluster);
         processed.insert(i);
     }
-    
+
     merged
 }
 
@@ -421,7 +413,7 @@ fn merge_overlapping_clusters(clusters: Vec<LargeFileCluster>) -> Vec<LargeFileC
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    
+
     fn create_test_file(path: &str, size: u64, hash: Option<String>) -> SimpleFileInfo {
         SimpleFileInfo {
             path: PathBuf::from(path),
@@ -429,14 +421,14 @@ mod tests {
             ssdeep_hash: hash,
         }
     }
-    
+
     #[test]
     fn test_similarity_to_distance() {
         assert_eq!(similarity_to_distance(100), 0.0);
         assert_eq!(similarity_to_distance(70), 30.0);
         assert_eq!(similarity_to_distance(0), 100.0);
     }
-    
+
     #[test]
     fn test_distance_matrix_symmetry() {
         let files = vec![
@@ -444,36 +436,33 @@ mod tests {
             create_test_file("b.txt", 1000, Some("3:abc:ghi".to_string())),
             create_test_file("c.txt", 1000, Some("3:xyz:123".to_string())),
         ];
-        
+
         let matrix = build_distance_matrix(&files);
-        
+
         for i in 0..files.len() {
             for j in 0..files.len() {
                 assert_eq!(
-                    matrix[[i, j]], matrix[[j, i]],
+                    matrix[[i, j]],
+                    matrix[[j, i]],
                     "Distance matrix must be symmetric"
                 );
             }
         }
     }
-    
+
     #[test]
     fn test_cluster_detection_edge_cases() {
         // Empty input
-        assert_eq!(
-            detect_large_file_clusters(&[], 70, 2).unwrap().len(),
-            0
-        );
-        
+        assert_eq!(detect_large_file_clusters(&[], 70, 2).unwrap().len(), 0);
+
         // Single file
-        let single = vec![
-            create_test_file("single.txt", 1000, Some("3:abc:def".to_string()))
-        ];
-        assert_eq!(
-            detect_large_file_clusters(&single, 70, 2).unwrap().len(),
-            0
-        );
-        
+        let single = vec![create_test_file(
+            "single.txt",
+            1000,
+            Some("3:abc:def".to_string()),
+        )];
+        assert_eq!(detect_large_file_clusters(&single, 70, 2).unwrap().len(), 0);
+
         // Files without hashes
         let no_hashes = vec![
             create_test_file("a.txt", 1000, None),
@@ -484,24 +473,26 @@ mod tests {
             0
         );
     }
-    
+
     #[test]
     fn test_invalid_similarity_threshold() {
-        let files = vec![
-            create_test_file("a.txt", 1000, Some("3:abc:def".to_string()))
-        ];
-        
+        let files = vec![create_test_file(
+            "a.txt",
+            1000,
+            Some("3:abc:def".to_string()),
+        )];
+
         assert!(matches!(
             detect_large_file_clusters(&files, 49, 2),
             Err(ClusteringError::InvalidSimilarity(49))
         ));
-        
+
         assert!(matches!(
             detect_large_file_clusters(&files, 101, 2),
             Err(ClusteringError::InvalidSimilarity(101))
         ));
     }
-    
+
     #[test]
     fn test_lsh_buckets() {
         let files = vec![
@@ -509,13 +500,13 @@ mod tests {
             create_test_file("b.txt", 1000, Some("3:abc123:ghi789".to_string())),
             create_test_file("c.txt", 1000, Some("6:xyz123:123456".to_string())),
         ];
-        
+
         let buckets = compute_lsh_buckets(&files);
-        
+
         // Files with same block size and similar chunks should be in same bucket
         assert!(!buckets.is_empty());
     }
-    
+
     #[test]
     fn test_cluster_aggregation() {
         let files = vec![
@@ -523,24 +514,24 @@ mod tests {
             create_test_file("b.txt", 2000, Some("3:abc:def".to_string())),
             create_test_file("c.txt", 3000, Some("3:xyz:123".to_string())),
         ];
-        
+
         let distances = build_distance_matrix(&files);
         let cluster_labels = vec![Some(0), Some(0), Some(1)];
-        
+
         let clusters = aggregate_clusters(&files, cluster_labels, &distances);
-        
+
         assert_eq!(clusters.len(), 2);
-        
+
         // Sort clusters by size to ensure consistent ordering
         let mut sorted_clusters = clusters.clone();
         sorted_clusters.sort_by_key(|c| c.files.len());
-        
+
         assert_eq!(sorted_clusters[1].files.len(), 2); // Cluster with 2 files
         assert_eq!(sorted_clusters[1].total_size, 3000); // 1000 + 2000
         assert_eq!(sorted_clusters[0].files.len(), 1); // Cluster with 1 file
         assert_eq!(sorted_clusters[0].total_size, 3000); // 3000
     }
-    
+
     #[test]
     fn test_dbscan_implementation() {
         // Create a simple distance matrix
@@ -560,9 +551,9 @@ mod tests {
         distances[[3, 0]] = 90.0;
         distances[[2, 1]] = 90.0;
         distances[[3, 1]] = 90.0;
-        
+
         let labels = simple_dbscan(&distances, 20.0, 2);
-        
+
         // Should have two clusters
         assert!(labels[0].is_some());
         assert!(labels[1].is_some());
@@ -572,7 +563,7 @@ mod tests {
         assert_eq!(labels[2], labels[3]); // Same cluster
         assert_ne!(labels[0], labels[2]); // Different clusters
     }
-    
+
     #[test]
     fn test_cluster_density_calculation() {
         let indices = vec![0, 1, 2];
@@ -584,11 +575,11 @@ mod tests {
         distances[[2, 0]] = 10.0;
         distances[[1, 2]] = 10.0;
         distances[[2, 1]] = 10.0;
-        
+
         let density = calculate_density(&indices, &distances);
         assert!(density > 0.9); // Should be close to 1.0 for dense cluster
     }
-    
+
     #[test]
     fn test_average_similarity_calculation() {
         let indices = vec![0, 1, 2];
@@ -600,12 +591,12 @@ mod tests {
         distances[[2, 0]] = 30.0;
         distances[[1, 2]] = 10.0; // 90% similarity
         distances[[2, 1]] = 10.0;
-        
+
         let avg_sim = calculate_avg_similarity(&indices, &distances);
         // Average of 80, 70, 90 = 80
         assert!((avg_sim - 80.0).abs() < 0.1);
     }
-    
+
     #[test]
     fn test_merge_overlapping_clusters() {
         let cluster1 = LargeFileCluster {
@@ -618,7 +609,7 @@ mod tests {
             avg_similarity: 90.0,
             density: 0.8,
         };
-        
+
         let cluster2 = LargeFileCluster {
             cluster_id: 1,
             files: vec![
@@ -629,24 +620,30 @@ mod tests {
             avg_similarity: 85.0,
             density: 0.7,
         };
-        
+
         let merged = merge_overlapping_clusters(vec![cluster1, cluster2]);
-        
+
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].files.len(), 3); // a, b, c (no duplicates)
         assert_eq!(merged[0].total_size, 6000); // Recalculated
     }
-    
+
     #[test]
     fn test_batch_clustering() {
         let files: Vec<_> = (0..10)
-            .map(|i| create_test_file(&format!("file{}.txt", i), 1000 * (i as u64 + 1), Some(format!("3:abc{}:def", i % 3))))
+            .map(|i| {
+                create_test_file(
+                    &format!("file{}.txt", i),
+                    1000 * (i as u64 + 1),
+                    Some(format!("3:abc{}:def", i % 3)),
+                )
+            })
             .collect();
-        
+
         let result = detect_clusters_batched(&files, 70, 2, 5);
         assert!(result.is_ok());
         let clusters = result.unwrap();
-        
+
         // Should have found some clusters based on the pattern
         assert!(!clusters.is_empty());
     }
@@ -656,7 +653,7 @@ mod tests {
 mod property_tests {
     use super::*;
     use proptest::prelude::*;
-    
+
     // Generate arbitrary file sets for testing
     prop_compose! {
         fn arb_file_set()(
@@ -672,7 +669,7 @@ mod property_tests {
             }).collect()
         }
     }
-    
+
     proptest! {
         // Property: All files in a cluster have similarity >= threshold
         #[test]
@@ -681,7 +678,7 @@ mod property_tests {
             min_sim in 50..100u8,
         ) {
             let result = detect_large_file_clusters(&files, min_sim, 2);
-            
+
             if let Ok(clusters) = result {
                 for cluster in clusters {
                     for i in 0..cluster.files.len() {
@@ -698,7 +695,7 @@ mod property_tests {
                 }
             }
         }
-        
+
         // Property: No file appears in multiple clusters
         #[test]
         fn prop_cluster_disjoint_invariant(
@@ -706,10 +703,10 @@ mod property_tests {
             min_sim in 50..100u8,
         ) {
             let result = detect_large_file_clusters(&files, min_sim, 2);
-            
+
             if let Ok(clusters) = result {
                 let mut seen = HashSet::new();
-                
+
                 for cluster in &clusters {
                     for file in &cluster.files {
                         prop_assert!(seen.insert(&file.path),
@@ -718,7 +715,7 @@ mod property_tests {
                 }
             }
         }
-        
+
         // Property: Cluster size respects minimum
         #[test]
         fn prop_minimum_cluster_size(
@@ -727,7 +724,7 @@ mod property_tests {
             min_size in 2..10usize,
         ) {
             let result = detect_large_file_clusters(&files, min_sim, min_size);
-            
+
             if let Ok(clusters) = result {
                 for cluster in clusters {
                     prop_assert!(cluster.files.len() >= min_size,
@@ -736,13 +733,13 @@ mod property_tests {
                 }
             }
         }
-        
+
         // Property: Distance matrix is symmetric
         #[test]
         fn prop_distance_matrix_symmetric(files in arb_file_set()) {
             let matrix = build_distance_matrix(&files);
             let n = files.len();
-            
+
             for i in 0..n {
                 for j in 0..n {
                     prop_assert_eq!(
@@ -752,13 +749,13 @@ mod property_tests {
                 }
             }
         }
-        
+
         // Property: Similarity to distance conversion is monotonic
         #[test]
         fn prop_similarity_distance_monotonic(s1 in 0..=100u8, s2 in 0..=100u8) {
             let d1 = similarity_to_distance(s1);
             let d2 = similarity_to_distance(s2);
-            
+
             if s1 < s2 {
                 prop_assert!(d1 > d2, "Higher similarity must yield lower distance");
             } else if s1 > s2 {

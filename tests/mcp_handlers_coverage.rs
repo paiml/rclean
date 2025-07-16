@@ -19,11 +19,11 @@ fn test_initialize_handler() {
             }
         })),
     };
-    
+
     let response = handle_initialize(request);
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     assert!(result.get("protocolVersion").is_some());
     assert!(result.get("capabilities").is_some());
@@ -38,16 +38,17 @@ fn test_tools_list_handler() {
         method: "tools/list".to_string(),
         params: None,
     };
-    
+
     let response = handle_tools_list(request);
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     let tools = result.get("tools").unwrap().as_array().unwrap();
     assert_eq!(tools.len(), 5);
-    
-    let tool_names: Vec<&str> = tools.iter()
+
+    let tool_names: Vec<&str> = tools
+        .iter()
         .map(|tool| tool.get("name").unwrap().as_str().unwrap())
         .collect();
     assert!(tool_names.contains(&"dedupe"));
@@ -63,7 +64,7 @@ async fn test_dedupe_tool_handler() {
     std::fs::write(temp_dir.path().join("test1.txt"), "same content").unwrap();
     std::fs::write(temp_dir.path().join("test2.txt"), "same content").unwrap();
     std::fs::write(temp_dir.path().join("test3.txt"), "different content").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -82,16 +83,16 @@ async fn test_dedupe_tool_handler() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     let message = result.get("message").unwrap().as_str().unwrap();
     assert!(message.contains("duplicate files"));
     assert!(message.contains("total files"));
-    
+
     let total_files = result.get("total_files").unwrap().as_u64().unwrap();
     assert!(total_files >= 3);
 }
@@ -101,7 +102,7 @@ async fn test_dedupe_tool_with_similarity() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.txt"), "content").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -120,7 +121,7 @@ async fn test_dedupe_tool_with_similarity() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -131,9 +132,9 @@ async fn test_dedupe_tool_with_csv() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "same content").unwrap();
     std::fs::write(temp_dir.path().join("test2.txt"), "same content").unwrap();
-    
+
     let csv_path = temp_dir.path().join("output.csv");
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -152,11 +153,11 @@ async fn test_dedupe_tool_with_csv() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     let message = result.get("message").unwrap().as_str().unwrap();
     assert!(message.contains("duplicate files"));
@@ -169,7 +170,7 @@ async fn test_dedupe_tool_with_glob_pattern() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.rs"), "code").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -188,7 +189,7 @@ async fn test_dedupe_tool_with_glob_pattern() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -199,7 +200,7 @@ async fn test_dedupe_tool_with_regex_pattern() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.rs"), "code").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -218,7 +219,7 @@ async fn test_dedupe_tool_with_regex_pattern() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -229,7 +230,7 @@ async fn test_dedupe_tool_with_hidden_files() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join(".hidden"), "hidden content").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -248,7 +249,7 @@ async fn test_dedupe_tool_with_hidden_files() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -261,7 +262,7 @@ async fn test_dedupe_tool_with_max_depth() {
     std::fs::create_dir(&subdir).unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(subdir.join("test2.txt"), "content").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -280,7 +281,7 @@ async fn test_dedupe_tool_with_max_depth() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -292,7 +293,7 @@ async fn test_search_tool_handler() {
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("example.rs"), "code").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -309,16 +310,16 @@ async fn test_search_tool_handler() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     let message = result.get("message").unwrap().as_str().unwrap();
     assert!(message.contains("Found"));
     assert!(message.contains("files matching pattern"));
-    
+
     let count = result.get("count").unwrap().as_u64().unwrap();
     assert!(count >= 2);
 }
@@ -328,7 +329,7 @@ async fn test_search_tool_with_glob() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.rs"), "code").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -345,7 +346,7 @@ async fn test_search_tool_with_glob() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
@@ -357,7 +358,7 @@ async fn test_count_tool_handler() {
     std::fs::write(temp_dir.path().join("test1.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("test2.txt"), "content").unwrap();
     std::fs::write(temp_dir.path().join("example.rs"), "code").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -374,16 +375,16 @@ async fn test_count_tool_handler() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     let message = result.get("message").unwrap().as_str().unwrap();
     assert!(message.contains("Found"));
     assert!(message.contains("files matching pattern"));
-    
+
     let count = result.get("count").unwrap().as_u64().unwrap();
     assert!(count >= 2);
 }
@@ -399,11 +400,11 @@ async fn test_tool_call_unknown_tool() {
             "arguments": {}
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_none());
     assert!(response.error.is_some());
-    
+
     let error = response.error.unwrap();
     assert_eq!(error.code, -32602);
     assert!(error.message.contains("Unknown tool"));
@@ -419,11 +420,11 @@ async fn test_tool_call_invalid_params() {
             "invalid": "params"
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_none());
     assert!(response.error.is_some());
-    
+
     let error = response.error.unwrap();
     assert_eq!(error.code, -32602);
     assert!(error.message.contains("Invalid params"));
@@ -449,7 +450,7 @@ async fn test_dedupe_tool_invalid_path() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     // Should succeed with empty results due to improved error handling
     assert!(response.result.is_some());
@@ -460,7 +461,7 @@ async fn test_dedupe_tool_invalid_path() {
 async fn test_dedupe_tool_invalid_pattern() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     std::fs::write(temp_dir.path().join("test.txt"), "content").unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -479,11 +480,11 @@ async fn test_dedupe_tool_invalid_pattern() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_none());
     assert!(response.error.is_some());
-    
+
     let error = response.error.unwrap();
     assert_eq!(error.code, -32602);
     assert!(error.message.contains("Invalid pattern"));
@@ -507,7 +508,7 @@ async fn test_search_tool_invalid_path() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     // Should succeed with empty results due to improved error handling
     assert!(response.result.is_some());
@@ -532,7 +533,7 @@ async fn test_count_tool_invalid_path() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     // Should succeed with empty results due to improved error handling
     assert!(response.result.is_some());
@@ -547,11 +548,11 @@ async fn test_tool_call_no_params() {
         method: "tools/call".to_string(),
         params: None,
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_none());
     assert!(response.error.is_some());
-    
+
     let error = response.error.unwrap();
     assert_eq!(error.code, -32602);
     assert!(error.message.contains("Invalid params"));
@@ -564,7 +565,7 @@ fn test_mcp_error_creation() {
         message: "Invalid Request".to_string(),
         data: None,
     };
-    
+
     assert_eq!(error.code, -32600);
     assert_eq!(error.message, "Invalid Request");
 }
@@ -585,7 +586,7 @@ fn test_mcp_response_error() {
     assert!(response.error.is_some());
     assert_eq!(response.id, json!(1));
     assert_eq!(response.jsonrpc, "2.0");
-    
+
     let error = response.error.unwrap();
     assert_eq!(error.code, -32600);
     assert_eq!(error.message, "Invalid Request");
@@ -594,12 +595,12 @@ fn test_mcp_response_error() {
 #[tokio::test]
 async fn test_outliers_tool_handler() {
     let temp_dir = tempfile::TempDir::new().unwrap();
-    
+
     // Create files with different sizes
     std::fs::write(temp_dir.path().join("small1.txt"), "a".repeat(10000)).unwrap();
     std::fs::write(temp_dir.path().join("small2.txt"), "a".repeat(10000)).unwrap();
     std::fs::write(temp_dir.path().join("large.txt"), "a".repeat(1000000)).unwrap();
-    
+
     let request = McpRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
@@ -616,11 +617,11 @@ async fn test_outliers_tool_handler() {
             }
         })),
     };
-    
+
     let response = handle_tool_call(request).await;
     assert!(response.result.is_some());
     assert!(response.error.is_none());
-    
+
     let result = response.result.unwrap();
     assert!(result.get("large_files").is_some());
     assert!(result.get("hidden_consumers").is_some());

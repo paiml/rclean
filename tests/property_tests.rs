@@ -1,6 +1,6 @@
 use proptest::prelude::*;
-use rclean::{find, find_advanced, PatternType};
 use rclean::outliers::{detect_outliers, OutlierOptions};
+use rclean::{find, find_advanced, PatternType};
 
 // Property: find() should always return a subset of the input files
 proptest! {
@@ -199,9 +199,9 @@ proptest! {
     ) {
         use tempfile::TempDir;
         use std::fs;
-        
+
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create some test files
         for i in 0..10 {
             let size = 10000 + (i * 5000);
@@ -210,7 +210,7 @@ proptest! {
                 "a".repeat(size)
             ).unwrap();
         }
-        
+
         let options = OutlierOptions {
             min_size,
             top_n: Some(top_n),
@@ -222,14 +222,14 @@ proptest! {
             cluster_similarity_threshold: 70,
             min_cluster_size: 2,
         };
-        
+
         if let Ok(report) = detect_outliers(temp_dir.path().to_str().unwrap(), &options) {
             // Large files should be at most top_n
             prop_assert!(report.large_files.len() <= top_n);
-            
+
             // Large files should not exceed total files analyzed
             prop_assert!(report.large_files.len() <= report.total_files_analyzed);
-            
+
             // Total size should be sum of all file sizes
             prop_assert!(report.total_size_analyzed > 0);
         }
@@ -242,9 +242,9 @@ proptest! {
     fn outliers_std_dev_filtering(std_dev_threshold in 0.1f64..10.0) {
         use tempfile::TempDir;
         use std::fs;
-        
+
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create files with predictable sizes
         // Most files are 10KB, one is 1MB (clear outlier)
         for i in 0..9 {
@@ -257,7 +257,7 @@ proptest! {
             temp_dir.path().join("large.txt"),
             "a".repeat(1000000)
         ).unwrap();
-        
+
         let options = OutlierOptions {
             min_size: None,
             top_n: Some(10),
@@ -269,7 +269,7 @@ proptest! {
             cluster_similarity_threshold: 70,
             min_cluster_size: 2,
         };
-        
+
         if let Ok(report) = detect_outliers(temp_dir.path().to_str().unwrap(), &options) {
             // All reported outliers should have std_devs_from_mean > threshold
             for outlier in &report.large_files {
@@ -285,9 +285,9 @@ proptest! {
     fn outliers_min_size_filtering(min_size in 1000u64..100000) {
         use tempfile::TempDir;
         use std::fs;
-        
+
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create files with various sizes
         for i in 0..10 {
             let size = 500 + (i * 20000); // Sizes from 500 to ~200KB
@@ -296,7 +296,7 @@ proptest! {
                 "a".repeat(size)
             ).unwrap();
         }
-        
+
         let options = OutlierOptions {
             min_size: Some(min_size),
             top_n: Some(20),
@@ -308,7 +308,7 @@ proptest! {
             cluster_similarity_threshold: 70,
             min_cluster_size: 2,
         };
-        
+
         if let Ok(report) = detect_outliers(temp_dir.path().to_str().unwrap(), &options) {
             // All reported files should be >= min_size
             for outlier in &report.large_files {
@@ -324,9 +324,9 @@ proptest! {
     fn outliers_pattern_detection_consistency(count in 3usize..10) {
         use tempfile::TempDir;
         use std::fs;
-        
+
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create files with patterns
         for i in 0..count {
             fs::write(
@@ -334,7 +334,7 @@ proptest! {
                 "data".repeat(10000)
             ).unwrap();
         }
-        
+
         let options = OutlierOptions {
             min_size: None,
             top_n: Some(20),
@@ -346,12 +346,12 @@ proptest! {
             cluster_similarity_threshold: 70,
             min_cluster_size: 2,
         };
-        
+
         if let Ok(report) = detect_outliers(temp_dir.path().to_str().unwrap(), &options) {
             // Should detect at least one pattern group
             if count >= 3 {
                 prop_assert!(!report.pattern_groups.is_empty());
-                
+
                 // Pattern group count should match files created
                 if let Some(backup_group) = report.pattern_groups.iter().find(|g| g.pattern.contains("backup")) {
                     prop_assert_eq!(backup_group.count, count);

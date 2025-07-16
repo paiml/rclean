@@ -153,15 +153,26 @@ enum Commands {
         min_size: Option<String>,
         #[clap(long, help = "Number of top outliers to show", default_value = "20")]
         top: usize,
-        #[clap(long, help = "Standard deviations from mean to consider as outlier", default_value = "2.0")]
+        #[clap(
+            long,
+            help = "Standard deviations from mean to consider as outlier",
+            default_value = "2.0"
+        )]
         std_dev: f64,
-        #[clap(long, help = "Check for hidden space consumers (node_modules, .git, etc.)")]
+        #[clap(
+            long,
+            help = "Check for hidden space consumers (node_modules, .git, etc.)"
+        )]
         check_hidden: bool,
         #[clap(long, help = "Check for file patterns (backups, logs, etc.)")]
         check_patterns: bool,
         #[clap(long, help = "Enable clustering of similar large files")]
         cluster: bool,
-        #[clap(long, default_value_t = 70, help = "Similarity threshold for clustering (50-100)")]
+        #[clap(
+            long,
+            default_value_t = 70,
+            help = "Similarity threshold for clustering (50-100)"
+        )]
         cluster_similarity: u8,
         #[clap(long, default_value_t = 2, help = "Minimum files to form a cluster")]
         min_cluster_size: usize,
@@ -306,10 +317,10 @@ fn handle_count(options: &SearchOptions) {
 
 fn handle_outliers(params: OutlierParams) {
     println!("🔍 Analyzing outliers in {}", params.path);
-    
+
     // Parse min_size if provided
     let min_size_bytes = params.min_size.as_ref().and_then(|s| parse_size(s).ok());
-    
+
     let options = rclean::outliers::OutlierOptions {
         min_size: min_size_bytes,
         top_n: Some(params.top),
@@ -321,7 +332,7 @@ fn handle_outliers(params: OutlierParams) {
         cluster_similarity_threshold: params.cluster_similarity,
         min_cluster_size: params.min_cluster_size,
     };
-    
+
     match rclean::outliers::detect_outliers(&params.path, &options) {
         Ok(report) => {
             println!("\n📊 Analysis Complete");
@@ -330,14 +341,14 @@ fn handle_outliers(params: OutlierParams) {
                 "Total size analyzed: {:.2} GB",
                 report.total_size_analyzed as f64 / (1024.0 * 1024.0 * 1024.0)
             );
-            
+
             // Display results based on format
             match params.format {
                 OutputFormat::Table => display_outliers_table(&report),
                 OutputFormat::Json => display_outliers_json(&report),
                 OutputFormat::Text => display_outliers_text(&report),
             }
-            
+
             // Export to CSV if requested
             if let Some(csv_path) = params.csv {
                 if let Ok(mut df) = rclean::outliers::outliers_to_dataframe(&report) {
@@ -347,20 +358,24 @@ fn handle_outliers(params: OutlierParams) {
                     }
                 }
             }
-        }
+        },
         Err(e) => eprintln!("Error detecting outliers: {}", e),
     }
 }
 
 fn display_outliers_table(report: &rclean::outliers::OutlierReport) {
-    use rclean::comfy_table::{Table, presets::UTF8_FULL};
-    
+    use rclean::comfy_table::{presets::UTF8_FULL, Table};
+
     if !report.large_files.is_empty() {
         println!("\n🚨 Large File Outliers:");
         let mut table = Table::new();
-        table.load_preset(UTF8_FULL)
-            .set_header(vec!["File Path", "Size (MB)", "% of Total", "Std Devs"]);
-        
+        table.load_preset(UTF8_FULL).set_header(vec![
+            "File Path",
+            "Size (MB)",
+            "% of Total",
+            "Std Devs",
+        ]);
+
         for outlier in &report.large_files {
             table.add_row(vec![
                 outlier.path.to_string_lossy().to_string(),
@@ -369,35 +384,44 @@ fn display_outliers_table(report: &rclean::outliers::OutlierReport) {
                 format!("{:.1}σ", outlier.std_devs_from_mean),
             ]);
         }
-        
+
         println!("{table}");
     }
-    
+
     if !report.hidden_consumers.is_empty() {
         println!("\n🗂️  Hidden Space Consumers:");
         let mut table = Table::new();
-        table.load_preset(UTF8_FULL)
-            .set_header(vec!["Path", "Type", "Size (MB)", "Files", "Recommendation"]);
-        
+        table.load_preset(UTF8_FULL).set_header(vec![
+            "Path",
+            "Type",
+            "Size (MB)",
+            "Files",
+            "Recommendation",
+        ]);
+
         for consumer in &report.hidden_consumers {
             table.add_row(vec![
                 consumer.path.to_string_lossy().to_string(),
                 consumer.pattern_type.clone(),
-                format!("{:.2}", consumer.total_size_bytes as f64 / (1024.0 * 1024.0)),
+                format!(
+                    "{:.2}",
+                    consumer.total_size_bytes as f64 / (1024.0 * 1024.0)
+                ),
                 consumer.file_count.to_string(),
                 consumer.recommendation.clone(),
             ]);
         }
-        
+
         println!("{table}");
     }
-    
+
     if !report.pattern_groups.is_empty() {
         println!("\n📁 Pattern Groups:");
         let mut table = Table::new();
-        table.load_preset(UTF8_FULL)
+        table
+            .load_preset(UTF8_FULL)
             .set_header(vec!["Pattern", "Count", "Total Size (MB)"]);
-        
+
         for group in &report.pattern_groups {
             table.add_row(vec![
                 group.pattern.clone(),
@@ -405,16 +429,22 @@ fn display_outliers_table(report: &rclean::outliers::OutlierReport) {
                 format!("{:.2}", group.total_size_bytes as f64 / (1024.0 * 1024.0)),
             ]);
         }
-        
+
         println!("{table}");
     }
-    
+
     if !report.large_file_clusters.is_empty() {
         println!("\n🔗 Similar Large File Clusters:");
         let mut table = Table::new();
-        table.load_preset(UTF8_FULL)
-            .set_header(vec!["Cluster ID", "File Count", "Total Size", "Avg Sim", "Density", "File Path"]);
-        
+        table.load_preset(UTF8_FULL).set_header(vec![
+            "Cluster ID",
+            "File Count",
+            "Total Size",
+            "Avg Sim",
+            "Density",
+            "File Path",
+        ]);
+
         for cluster in &report.large_file_clusters {
             // First row with cluster info and first file
             if !cluster.files.is_empty() {
@@ -426,7 +456,7 @@ fn display_outliers_table(report: &rclean::outliers::OutlierReport) {
                     format!("{:.2}", cluster.density),
                     cluster.files[0].path.to_string_lossy().to_string(),
                 ]);
-                
+
                 // Additional rows for remaining files in cluster
                 for file in cluster.files.iter().skip(1) {
                     table.add_row(vec![
@@ -440,7 +470,7 @@ fn display_outliers_table(report: &rclean::outliers::OutlierReport) {
                 }
             }
         }
-        
+
         println!("{table}");
     }
 }
@@ -465,7 +495,7 @@ fn display_outliers_text(report: &rclean::outliers::OutlierReport) {
             );
         }
     }
-    
+
     if !report.hidden_consumers.is_empty() {
         println!("\nHidden Space Consumers:");
         for consumer in &report.hidden_consumers {
@@ -479,7 +509,7 @@ fn display_outliers_text(report: &rclean::outliers::OutlierReport) {
             );
         }
     }
-    
+
     if !report.pattern_groups.is_empty() {
         println!("\nPattern Groups:");
         for group in &report.pattern_groups {
@@ -491,7 +521,7 @@ fn display_outliers_text(report: &rclean::outliers::OutlierReport) {
             );
         }
     }
-    
+
     if !report.large_file_clusters.is_empty() {
         println!("\nSimilar Large File Clusters:");
         for cluster in &report.large_file_clusters {
@@ -516,24 +546,33 @@ fn display_outliers_text(report: &rclean::outliers::OutlierReport) {
 
 fn parse_size(size_str: &str) -> Result<u64, String> {
     let size_str = size_str.trim().to_uppercase();
-    
+
     if let Some(num_str) = size_str.strip_suffix("KB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("MB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0 * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("GB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0 * 1024.0 * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("B") {
-        num_str.trim().parse::<u64>()
+        num_str
+            .trim()
+            .parse::<u64>()
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else {
-        size_str.parse::<u64>()
+        size_str
+            .parse::<u64>()
             .map_err(|_| format!("Invalid size: {} (use B, KB, MB, or GB suffix)", size_str))
     }
 }

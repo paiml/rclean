@@ -244,7 +244,9 @@ pub async fn handle_tool_call(request: McpRequest) -> McpResponse {
         "search" => handle_search_tool(request.id, tool_params.arguments).await,
         "count" => handle_count_tool(request.id, tool_params.arguments).await,
         "outliers" => handle_outliers_tool(request.id, tool_params.arguments).await,
-        "analyze_file_clusters" => handle_analyze_clusters_tool(request.id, tool_params.arguments).await,
+        "analyze_file_clusters" => {
+            handle_analyze_clusters_tool(request.id, tool_params.arguments).await
+        },
         _ => McpResponse::error(
             request.id,
             -32602,
@@ -426,8 +428,8 @@ fn create_pattern(pattern: &str, pattern_type: &str) -> Result<PatternType, Stri
     match pattern_type {
         "literal" | "" => Ok(PatternType::Literal(pattern.to_string())),
         "glob" => {
-            let glob = globset::Glob::new(pattern)
-                .map_err(|e| format!("Invalid glob pattern: {}", e))?;
+            let glob =
+                globset::Glob::new(pattern).map_err(|e| format!("Invalid glob pattern: {}", e))?;
             let mut builder = globset::GlobSetBuilder::new();
             builder.add(glob);
             let globset = builder
@@ -436,8 +438,8 @@ fn create_pattern(pattern: &str, pattern_type: &str) -> Result<PatternType, Stri
             Ok(PatternType::Glob(globset))
         },
         "regex" => {
-            let regex = regex::Regex::new(pattern)
-                .map_err(|e| format!("Invalid regex pattern: {}", e))?;
+            let regex =
+                regex::Regex::new(pattern).map_err(|e| format!("Invalid regex pattern: {}", e))?;
             Ok(PatternType::Regex(regex))
         },
         _ => Err(format!("Unknown pattern type: {}", pattern_type)),
@@ -448,13 +450,17 @@ async fn handle_outliers_tool(id: Value, arguments: Value) -> McpResponse {
     let args: OutliersArgs = match serde_json::from_value(arguments) {
         Ok(args) => args,
         Err(e) => {
-            return McpResponse::error(id, -32602, format!("Invalid arguments for outliers: {}", e));
+            return McpResponse::error(
+                id,
+                -32602,
+                format!("Invalid arguments for outliers: {}", e),
+            );
         },
     };
-    
+
     // Parse min_size if provided
     let min_size_bytes = args.min_size.as_ref().and_then(|s| parse_size(s).ok());
-    
+
     let options = crate::outliers::OutlierOptions {
         min_size: min_size_bytes,
         top_n: Some(args.top_n),
@@ -466,7 +472,7 @@ async fn handle_outliers_tool(id: Value, arguments: Value) -> McpResponse {
         cluster_similarity_threshold: 70,
         min_cluster_size: 2,
     };
-    
+
     match crate::outliers::detect_outliers(&args.path, &options) {
         Ok(report) => {
             // Convert report to JSON response
@@ -494,12 +500,12 @@ async fn handle_outliers_tool(id: Value, arguments: Value) -> McpResponse {
                     "total_size_bytes": g.total_size_bytes,
                     "count": g.count,
                 })).collect::<Vec<_>>(),
-                "message": format!("Found {} outliers across {} files", 
+                "message": format!("Found {} outliers across {} files",
                     report.large_files.len() + report.hidden_consumers.len() + report.pattern_groups.len(),
                     report.total_files_analyzed
                 )
             });
-            
+
             McpResponse::success(id, result)
         },
         Err(e) => {
@@ -515,10 +521,10 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
     let min_similarity = arguments["min_similarity"].as_u64().unwrap_or(70) as u8;
     let min_cluster_size = arguments["min_cluster_size"].as_u64().unwrap_or(2) as usize;
     let min_file_size = arguments["min_file_size"].as_str().unwrap_or("10MB");
-    
+
     // Parse min file size
     let min_size_bytes = parse_size(min_file_size).unwrap_or(10 * 1024 * 1024);
-    
+
     // Support tool composition via files parameter
     let files = if let Some(file_list) = arguments["files"].as_array() {
         // Analyze specific files from previous tool output
@@ -533,7 +539,7 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
                         } else {
                             None
                         };
-                        
+
                         file_infos.push(crate::outliers::SimpleFileInfo {
                             path: std::path::PathBuf::from(path_str),
                             size_bytes: metadata.len(),
@@ -551,9 +557,9 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
             Ok(files) => files,
             Err(e) => {
                 return McpResponse::error(id, -32603, format!("Error scanning directory: {}", e));
-            }
+            },
         };
-        
+
         // Collect large files with SSDEEP hashes
         let mut file_infos = Vec::new();
         for file_path in all_files {
@@ -565,7 +571,7 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
                     } else {
                         None
                     };
-                    
+
                     file_infos.push(crate::outliers::SimpleFileInfo {
                         path: std::path::PathBuf::from(file_path),
                         size_bytes: metadata.len(),
@@ -576,7 +582,7 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
         }
         file_infos
     };
-    
+
     // Perform clustering
     match crate::clustering::detect_large_file_clusters(&files, min_similarity, min_cluster_size) {
         Ok(clusters) => {
@@ -601,40 +607,47 @@ async fn handle_analyze_clusters_tool(id: Value, arguments: Value) -> McpRespons
                         .flat_map(|c| c.files.iter().map(|f| f.path.to_string_lossy().to_string()))
                         .collect::<Vec<_>>()
                 },
-                "message": format!("Found {} clusters containing {} similar files", 
+                "message": format!("Found {} clusters containing {} similar files",
                     clusters.len(),
                     clusters.iter().map(|c| c.files.len()).sum::<usize>()
                 )
             });
-            
+
             McpResponse::success(id, result)
-        }
-        Err(e) => {
-            McpResponse::error(id, -32603, format!("Error detecting clusters: {}", e))
-        }
+        },
+        Err(e) => McpResponse::error(id, -32603, format!("Error detecting clusters: {}", e)),
     }
 }
 
 fn parse_size(size_str: &str) -> Result<u64, String> {
     let size_str = size_str.trim().to_uppercase();
-    
+
     if let Some(num_str) = size_str.strip_suffix("KB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("MB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0 * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("GB") {
-        num_str.trim().parse::<f64>()
+        num_str
+            .trim()
+            .parse::<f64>()
             .map(|n| (n * 1024.0 * 1024.0 * 1024.0) as u64)
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else if let Some(num_str) = size_str.strip_suffix("B") {
-        num_str.trim().parse::<u64>()
+        num_str
+            .trim()
+            .parse::<u64>()
             .map_err(|_| format!("Invalid size: {}", size_str))
     } else {
-        size_str.parse::<u64>()
+        size_str
+            .parse::<u64>()
             .map_err(|_| format!("Invalid size: {} (use B, KB, MB, or GB suffix)", size_str))
     }
 }
