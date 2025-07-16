@@ -33,6 +33,9 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         
+    - name: Install make
+      run: sudo apt-get update && sudo apt-get install -y make
+      
     - name: Install cargo-audit
       run: cargo install cargo-audit
       
