@@ -1,12 +1,12 @@
 [package]
 name = "rclean"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Noah Gift"]
-description = "A high-performance Rust-based disk cleanup tool that finds duplicates and storage outliers"
+description = "PMAT-certified high-performance Rust disk cleanup tool with zero-tolerance quality gates"
 repository = "https://github.com/paiml/rclean"
 license = "MIT"
-keywords = ["cleanup", "deduplication", "outliers", "disk-space", "filesystem"]
+keywords = ["pmat", "cleanup", "deduplication", "quality-gate", "disk-space"]
 categories = ["command-line-utilities", "filesystem"]
 readme = "README.md"
 documentation = "https://docs.rs/rclean"
