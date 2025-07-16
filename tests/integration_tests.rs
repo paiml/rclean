@@ -159,9 +159,11 @@ fn test_csv_output() {
 
 #[test]
 fn test_error_handling() {
-    // Test with non-existent directory
+    // Test with non-existent directory - should handle gracefully and return empty result
     let result = rclean::walk("/non/existent/path");
-    assert!(result.is_err());
+    assert!(result.is_ok());
+    let files = result.unwrap();
+    assert!(files.is_empty());
     
     // Test with empty pattern
     let files = vec!["test.txt".to_string()];

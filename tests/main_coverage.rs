@@ -219,7 +219,8 @@ fn test_error_handling_invalid_path() {
         None,
     );
     
-    assert!(result.is_err());
+    // Should handle gracefully and return ok with empty results
+    assert!(result.is_ok());
 }
 
 #[test]

@@ -328,7 +328,7 @@ async fn handle_dedupe_tool(id: Value, arguments: Value) -> McpResponse {
                         .column("duplicate_group")
                         .ok()
                         .and_then(|col| col.unique().ok())
-                        .map(|unique| unique.len() - 1) // Subtract 1 for null values
+                        .map(|unique| unique.len().saturating_sub(1)) // Subtract 1 for null values, prevent underflow
                         .unwrap_or(0),
                     "message": format!("Found {} duplicate files in {} total files", duplicates, height)
                 }),

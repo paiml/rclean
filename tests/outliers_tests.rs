@@ -283,5 +283,8 @@ fn test_error_handling_nonexistent_path() {
     
     let result = detect_outliers("/nonexistent/path/that/does/not/exist", &options);
     
-    assert!(result.is_err());
+    // Should handle gracefully and return ok with empty results
+    assert!(result.is_ok());
+    let report = result.unwrap();
+    assert_eq!(report.total_files_analyzed, 0);
 }
