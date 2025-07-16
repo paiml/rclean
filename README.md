@@ -57,10 +57,10 @@ A high-performance Rust-based disk cleanup tool that finds duplicate files and s
 | Documentation Coverage | 100% | ✅ | `make test-doc` |
 
 ### Testing Strategy
-* 🧪 **Unit Tests**: 43+ individual component tests
+* 🧪 **126+ Total Tests**: Comprehensive multi-layer testing approach
 * 🔗 **Integration Tests**: End-to-end workflow validation
-* 🎲 **Property Tests**: Mathematical invariant verification
-* 📚 **Documentation Tests**: Executable examples in docs
+* 🎲 **Property Tests**: Mathematical invariant verification (proptest)
+* 📚 **Documentation Tests**: 6+ executable examples in docs
 * 📋 **Example Tests**: Real-world usage demonstrations
 * 🚀 **Performance Tests**: Efficiency and scalability validation
 
@@ -73,19 +73,75 @@ A high-performance Rust-based disk cleanup tool that finds duplicate files and s
 * ✅ **Documentation**: All public APIs documented with examples
 * ✅ **Coverage**: High test coverage with comprehensive edge case testing
 
-### Installation
+## Installation
 
+### Requirements
+- **Rust**: 1.70+ (MSRV - Minimum Supported Rust Version)
+- **Platform**: Linux, macOS, Windows (x86_64)
+- **Memory**: 512MB+ RAM recommended for large datasets
+
+### Method 1: From crates.io (Recommended)
 ```bash
-# From crates.io (recommended)
+# Install latest stable release
 cargo install rclean
 
-# From source
+# Verify installation
+rclean --version
+```
+
+### Method 2: From GitHub Releases
+Download pre-built binaries from [Releases](https://github.com/paiml/rclean/releases):
+
+```bash
+# Linux/macOS
+curl -L https://github.com/paiml/rclean/releases/latest/download/rclean-x86_64-unknown-linux-gnu.tar.gz | tar xz
+sudo mv rclean /usr/local/bin/
+
+# Or using wget
+wget https://github.com/paiml/rclean/releases/latest/download/rclean-x86_64-unknown-linux-gnu.tar.gz
+tar xf rclean-x86_64-unknown-linux-gnu.tar.gz
+sudo mv rclean /usr/local/bin/
+```
+
+### Method 3: From Source (Development)
+```bash
+# Clone repository
 git clone https://github.com/paiml/rclean.git
 cd rclean
+
+# Build and install (debug)
 cargo install --path .
 
-# Or directly from GitHub
-cargo install --git https://github.com/paiml/rclean.git
+# Or build release version
+make build-release
+sudo cp target/release/rclean /usr/local/bin/
+```
+
+### Method 4: Development Setup
+```bash
+# Clone and setup development environment
+git clone https://github.com/paiml/rclean.git
+cd rclean
+
+# Install development dependencies
+rustup component add rustfmt clippy
+cargo install cargo-audit cargo-tarpaulin
+
+# Verify development setup
+make quality-gate
+```
+
+### Verification
+```bash
+# Check installation
+rclean --version
+# Expected: rclean 0.1.2
+
+# Run basic test
+rclean --help
+
+# Test with current directory
+rclean
 ```
 
 ### Quick Start
